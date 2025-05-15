@@ -1,0 +1,1 @@
+export type AppState = "loading" | "ready" | "error";
