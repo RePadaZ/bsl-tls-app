@@ -4,10 +4,22 @@ import react from "@vitejs/plugin-react";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+const ReactCompilerConfig = {
+    // любые опции для React Compiler, если нужны
+};
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+      react({
+          babel: {
+              plugins: [
+                  ["babel-plugin-react-compiler", ReactCompilerConfig],
+              ],
+          },
+      }),
+      tailwindcss()
+  ],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
