@@ -1,7 +1,4 @@
-type Props = {
-    message: string;
-    onRetry: () => void;
-};
+import {Props} from "../Type.ts";
 
 export default function ErrorScreen({ message, onRetry }: Props) {
     return (

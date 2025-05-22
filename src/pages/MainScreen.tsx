@@ -1,4 +1,5 @@
 export default function MainScreen() {
+
     return (
         <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500
             min-h-screen flex items-center justify-center text-white font-sans">
@@ -12,14 +13,14 @@ export default function MainScreen() {
                     Надёжный помощник для работы с BSL-сервером.
                 </p>
                 <div className={"justify-center"}>
-                    <button className="bg-yellow-300 hover:bg-yellow-400 text-black
+                    <a className="cursor-pointer bg-yellow-300 hover:bg-yellow-400 text-black
                     font-semibold py-2 px-6 rounded-xl transition-all duration-300 mr-4">
                         Запустить
-                    </button>
-                    <button className="bg-yellow-300 hover:bg-yellow-400 text-black
+                    </a>
+                    <a href={'/setting'} className="cursor-pointer mask-clip-content bg-yellow-300 hover:bg-yellow-400 text-black
                     font-semibold py-2 px-6 rounded-xl transition-all duration-300">
                         Настройки
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
