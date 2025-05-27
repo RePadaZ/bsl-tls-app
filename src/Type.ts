@@ -1,10 +1,3 @@
-export type AppState = "loading" | "ready" | "error";
-
-export type Props = {
-    message: string;
-    onRetry: () => void;
-};
-
 export type Settings = {
     hotkey: string;
     theme: "light" | "dark";
