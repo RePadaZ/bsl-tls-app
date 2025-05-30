@@ -40,10 +40,10 @@ pub fn check_local_store_data(app: &mut App) -> Result<(), AppError> {
 
     // Проверяем есть ли настройки в хранилище
     if store.is_empty() {
-        create_new_store(app, store);
+        create_new_store(app, store)?;
         Ok(())
     } else {
-        read_store_data(app, store);
+        read_store_data(app, store)?;
         Ok(())
     }
 }

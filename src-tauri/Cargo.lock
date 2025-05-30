@@ -355,6 +355,7 @@ dependencies = [
 name = "bsl-tls-app"
 version = "0.1.0"
 dependencies = [
+ "global-hotkey",
  "serde_json",
  "tauri",
  "tauri-build",

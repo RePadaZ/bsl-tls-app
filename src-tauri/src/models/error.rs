@@ -1,3 +1,4 @@
+use global_hotkey::hotkey::HotKeyParseError;
 use std::io;
 use tauri_plugin_store::Error as StoreError;
 use thiserror::Error;
@@ -13,4 +14,10 @@ pub enum AppError {
 
     #[error("Ошибка хранилища настроек приложения: {0}")]
     Store(#[from] StoreError),
+
+    #[error("Ошибка парсинга горячей клавиши: {0}")]
+    HotKey(#[from] HotKeyParseError),
+
+    #[error("Ошибка чтения данных из настроек:")]
+    HotkeyNotConfigured,
 }
