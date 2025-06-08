@@ -18,6 +18,6 @@ pub enum AppError {
     #[error("Ошибка парсинга горячей клавиши: {0}")]
     HotKey(#[from] HotKeyParseError),
 
-    #[error("Ошибка чтения данных из настроек:")]
+    #[error("Ошибка чтения данных из настроек")]
     HotkeyNotConfigured,
 }

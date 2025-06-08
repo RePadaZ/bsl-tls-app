@@ -1,5 +1,8 @@
 use crate::models::error::AppError;
+use crate::models::error_client_module::ErrorClientModule;
+use crate::models::standard_setting::DEFAULT_SETTINGS;
 use serde_json::json;
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use tauri::{App, Wry};
@@ -11,9 +14,7 @@ use tauri_plugin_store::Store;
 /// в противном случае они не будут совместимы с привязками JavaScript.
 pub fn create_new_store(app: &mut App, store: Arc<Store<Wry>>) -> Result<(), AppError> {
     // Установка стандартных настроек для приложения
-    store.set("hotkey", json!({ "value": "Ctrl+N" }));
-    store.set("theme", json!({ "value": "light" }));
-    store.set("language", json!({ "value":"ru"}));
+    set_standard_settings(store);
     parse_and_register_shortcut(app, "Ctrl+N")?;
     Ok(())
 }
@@ -63,4 +64,19 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
 //TODO
 fn shortcut_state_pressed() {
     println!("handler_global_shortcut_event");
+}
+
+/// Устанавливает стандартные настройки для приложения
+pub fn set_standard_settings(store: Arc<Store<Wry>>) {
+    for (key, value) in DEFAULT_SETTINGS.entries() {
+        store.set(*key, json!({ "value": *value }));
+    }
+}
+
+pub fn default_setting_map() -> Result<HashMap<String, String>, ErrorClientModule> {
+    let mut map = HashMap::new();
+    for (key, value) in DEFAULT_SETTINGS.entries() {
+        map.insert((*key).to_string(), (*value).to_string());
+    }
+    Ok(map)
 }

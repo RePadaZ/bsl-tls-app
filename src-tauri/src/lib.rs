@@ -1,14 +1,19 @@
 mod models {
     pub mod error;
+    pub mod error_client_module;
+    pub mod standard_setting;
 }
 mod client_module;
 mod error;
 mod preflight;
 mod utils;
 
+use crate::models::error_client_module::ErrorClientModule;
+use std::collections::HashMap;
+
 #[tauri::command]
-fn my_custom_command() {
-    println!("I was invoked from JavaScript!");
+fn all_data_settings(app: tauri::AppHandle) -> Result<HashMap<String, String>, ErrorClientModule> {
+    client_module::get_data_settings(app)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,7 +30,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![my_custom_command])
+        .invoke_handler(tauri::generate_handler![all_data_settings])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

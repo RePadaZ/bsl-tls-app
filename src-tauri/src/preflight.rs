@@ -1,4 +1,5 @@
 use crate::models::error::AppError;
+use crate::models::standard_setting::DEFAULT_SETTINGS;
 use crate::utils::{create_new_store, read_store_data};
 use std::env;
 use tauri::App;
@@ -36,7 +37,12 @@ pub fn check_bsl_server_path() -> Result<(), AppError> {
 pub fn check_local_store_data(app: &mut App) -> Result<(), AppError> {
     // Это также помещает хранилище в таблицу ресурсов приложения
     // Ваши следующие вызовы `store` как из Rust, так и от JS повторно используют то же хранилище
-    let store = app.store("store.json")?;
+    let store = if let Some(path_str) = DEFAULT_SETTINGS.get("settings.json") {
+        app.store(path_str)?
+    } else {
+        // Создаем новое хранилище по умолчанию
+        app.store("settings.json")?
+    };
 
     // Проверяем есть ли настройки в хранилище
     if store.is_empty() {

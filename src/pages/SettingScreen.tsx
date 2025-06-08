@@ -1,6 +1,7 @@
 import {Settings} from "../Type.ts";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {HotkeyInput} from "../component/HotkeyInput.tsx";
+import {invoke} from "@tauri-apps/api/core";
 
 export function SettingScreen() {
     const [settings, setSettings] = useState<Settings>({
@@ -8,6 +9,18 @@ export function SettingScreen() {
         theme: "light",
         language: "ru",
     });
+
+    async function GetDataSetting() {
+        const result = await invoke("all_data_settings")
+        if (result != undefined) {
+            console.log(result);
+        }
+    }
+
+    useEffect(() => {
+        GetDataSetting();
+    }, []);
+
 
     return (
         <div className="max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded shadow-md">
@@ -75,7 +88,7 @@ export function SettingScreen() {
             </fieldset>
 
             <button
-                // onClick={saveSettings}
+                onClick={GetDataSetting}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
                 Сохранить
