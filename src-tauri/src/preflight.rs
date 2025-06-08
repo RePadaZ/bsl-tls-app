@@ -1,17 +1,55 @@
+use crate::models::error::AppError;
+use crate::models::standard_setting::DEFAULT_SETTINGS;
+use crate::utils::{create_new_store, read_store_data};
 use std::env;
-use std::path::PathBuf;
-use crate::errors::AppError;
+use tauri::App;
+use tauri_plugin_store::StoreExt;
 
+/// Функция для проверки приложения перед запуском
+/// Сюда можно добавлять новые функция перед самим запуском
+/// Которые будут отображаться у пользователя в случаи ошибки приложения
+pub fn check_app_for_start(app: &mut App) -> Result<(), AppError> {
+    check_bsl_server_path()?;
+    check_local_store_data(app)?;
+    Ok(())
+}
+
+/// Проверяет, установлен ли BSL Server в текущей директории
 pub fn check_bsl_server_path() -> Result<(), AppError> {
-    // Получаем директорию проекта и добавляем путь до bsl server
-    let path: PathBuf = env::current_dir().unwrap()
-        .join("bsl-server").join("bsl-language-server.exe");
+    // Пытаемся получить текущую директорию
+    let mut path = env::current_dir()?;
 
-    // Проверяем есть ли данный файл
-    if !path.exists() {
-        drop(path);
-        return Err(AppError::InvalidBslPath)
+    // Добавляем путь до исполняемого файла
+    path.push("bsl-language-server");
+    path.push("bsl-language-server.exe");
+
+    // Проверяем, существует ли файл
+    if !path.is_file() {
+        return Err(AppError::InvalidBslPath);
     }
 
     Ok(())
+}
+
+/// Функция для хранения настроек пользователя.
+/// Создает или читает уже существующие настройки приложения.
+/// Так же делает первичную инициализацию настроек.
+pub fn check_local_store_data(app: &mut App) -> Result<(), AppError> {
+    // Это также помещает хранилище в таблицу ресурсов приложения
+    // Ваши следующие вызовы `store` как из Rust, так и от JS повторно используют то же хранилище
+    let store = if let Some(path_str) = DEFAULT_SETTINGS.get("settings.json") {
+        app.store(path_str)?
+    } else {
+        // Создаем новое хранилище по умолчанию
+        app.store("settings.json")?
+    };
+
+    // Проверяем есть ли настройки в хранилище
+    if store.is_empty() {
+        create_new_store(app, store)?;
+        Ok(())
+    } else {
+        read_store_data(app, store)?;
+        Ok(())
+    }
 }
