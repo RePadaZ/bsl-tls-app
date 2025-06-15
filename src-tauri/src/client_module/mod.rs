@@ -1,15 +1,17 @@
+use crate::models::custom_type::Settings;
 use crate::models::error_client_module::ErrorClientModule;
 use crate::models::standard_setting::DEFAULT_SETTINGS;
 use crate::utils::{default_setting_map, set_standard_settings};
+use serde_json::json;
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
 /// Получает настройки приложения для клиента и проверяет что все настройки совпадают.
 /// Если какие-то настройки повреждены, тогда получает стандартные настройки для корректной работы.
-pub fn get_data_settings(app: AppHandle) -> Result<HashMap<String, String>, ErrorClientModule> {
+pub fn get_data_setting(app: AppHandle) -> Result<HashMap<String, String>, ErrorClientModule> {
     // Подключаемся к хранилищу
-    let store = if let Some(path_str) = DEFAULT_SETTINGS.get("settings.json") {
+    let store = if let Some(path_str) = DEFAULT_SETTINGS.get("path_setting") {
         app.store(path_str)?
     } else {
         // Создаем новое хранилище по умолчанию
@@ -42,4 +44,26 @@ pub fn get_data_settings(app: AppHandle) -> Result<HashMap<String, String>, Erro
     }
 
     Ok(map)
+}
+
+/// Сохраняет настройки, установленные пользователем.
+/// В случае ошибки записи будет возвращена ошибка на клиент.
+pub fn save_data_setting(app: AppHandle, setting: Settings) -> Result<(), ErrorClientModule> {
+    // Подключаемся к хранилищу
+    let store = if let Some(path_str) = DEFAULT_SETTINGS.get("path_setting") {
+        app.store(path_str)?
+    } else {
+        // Ошибка о создании
+        return Err(ErrorClientModule::SaveStore(
+            "Не найдены настройки или нет доступа".into(),
+        ));
+    };
+
+    for (key, _) in DEFAULT_SETTINGS.entries() {
+        if let Some(value) = setting.get(*key) {
+            store.set(*key, json!({ "value": value }));
+        }
+    }
+
+    Ok(())
 }

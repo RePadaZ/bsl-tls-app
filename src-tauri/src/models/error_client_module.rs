@@ -11,6 +11,9 @@ pub enum ErrorClientModule {
 
     #[error("Ошибка хранилища настроек приложения: {0}")]
     Store(#[from] StoreError),
+
+    #[error("Ошибка хранилища настроек приложения: {0}")]
+    SaveStore(String),
 }
 
 impl From<ErrorClientModule> for InvokeError {
