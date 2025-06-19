@@ -1,5 +1,4 @@
 use crate::models::error::AppError;
-use crate::models::error_client_module::ErrorClientModule;
 use crate::models::standard_setting::DEFAULT_SETTINGS;
 use serde_json::json;
 use std::collections::HashMap;
@@ -35,12 +34,12 @@ pub fn read_store_data(app: &mut App, store: Arc<Store<Wry>>) -> Result<(), AppE
 /// В самом начале запуска приложения.
 fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppError> {
     // Парсим строку и делаем её тип Shortcut
-    let shortcut_my = Shortcut::from_str(&config)?;
+    let shortcut_my = get_current_shortcut(&config)?;
 
     app.handle()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(move |_app, shortcut, event| {
+                .with_handler(move |_, shortcut, event| {
                     if shortcut == &shortcut_my {
                         match event.state() {
                             ShortcutState::Pressed => {
@@ -62,7 +61,7 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
 }
 
 //TODO
-fn shortcut_state_pressed() {
+pub(crate) fn shortcut_state_pressed() {
     println!("handler_global_shortcut_event");
 }
 
@@ -73,10 +72,16 @@ pub fn set_standard_settings(store: Arc<Store<Wry>>) {
     }
 }
 
-pub fn default_setting_map() -> Result<HashMap<String, String>, ErrorClientModule> {
+pub fn default_setting_map() -> Result<HashMap<String, String>, AppError> {
     let mut map = HashMap::new();
     for (key, value) in DEFAULT_SETTINGS.entries() {
         map.insert((*key).to_string(), (*value).to_string());
     }
     Ok(map)
+}
+
+/// Функция делает из строки горячую клавишу и возвращает результат
+pub fn get_current_shortcut(hot_key: &str) -> Result<Shortcut, AppError> {
+    let shortcut_my = Shortcut::from_str(&hot_key)?;
+    Ok(shortcut_my)
 }

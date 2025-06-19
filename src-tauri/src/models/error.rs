@@ -1,5 +1,7 @@
+use anyhow::anyhow;
 use global_hotkey::hotkey::HotKeyParseError;
 use std::io;
+use tauri::ipc::InvokeError;
 use tauri_plugin_store::Error as StoreError;
 use thiserror::Error;
 
@@ -20,4 +22,16 @@ pub enum AppError {
 
     #[error("Ошибка чтения данных из настроек")]
     HotkeyNotConfigured,
+
+    #[error("Ошибка хранилища настроек приложения: {0}")]
+    SaveStore(String),
+
+    #[error("<UNK> <UNK> <UNK> <UNK>")]
+    SetNewHotKey(#[from] tauri_plugin_global_shortcut::Error),
+}
+
+impl From<AppError> for InvokeError {
+    fn from(error: AppError) -> Self {
+        InvokeError::from_anyhow(anyhow!(error.to_string()))
+    }
 }

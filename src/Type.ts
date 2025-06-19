@@ -1,7 +1,7 @@
 export type Settings = {
     hotkey: string;
-    theme: "light" | "dark";
     language: "ru" | "en";
+    path_setting: string;
 };
 
 export type HotkeyInputProps = {
