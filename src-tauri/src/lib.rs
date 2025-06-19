@@ -1,7 +1,6 @@
 mod models {
     pub mod custom_type;
     pub mod error;
-    pub mod error_client_module;
     pub mod standard_setting;
 }
 mod client_module;
@@ -10,16 +9,16 @@ mod preflight;
 mod utils;
 
 use crate::models::custom_type::Settings;
-use crate::models::error_client_module::ErrorClientModule;
+use crate::models::error::AppError;
 use std::collections::HashMap;
 
 #[tauri::command]
-fn get_data_setting(app: tauri::AppHandle) -> Result<HashMap<String, String>, ErrorClientModule> {
+fn get_data_setting(app: tauri::AppHandle) -> Result<HashMap<String, String>, AppError> {
     client_module::get_data_setting(app)
 }
 
 #[tauri::command]
-fn save_data_setting(app: tauri::AppHandle, setting: Settings) -> Result<(), ErrorClientModule> {
+fn save_data_setting(app: tauri::AppHandle, setting: Settings) -> Result<(), AppError> {
     client_module::save_data_setting(app, setting)
 }
 
