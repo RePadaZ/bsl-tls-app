@@ -2,19 +2,20 @@ export default function Main_screen() {
 
     return (
         <div
-            className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center px-4">
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-10 max-w-xl w-full text-center">
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
-                    Добро пожаловать в <span className="text-yellow-300">BSL TLS App</span>
+            className="min-h-screen bg-gradient-to-br bg-gray-900 flex items-center justify-center px-4">
+            <div className="bg-white/10 rounded-2xl p-10 max-w-xl w-full text-center text-white">
+                <h1 className="text-4xl font-bold mb-6">
+                    Добро пожаловать в BSL TLS App
                 </h1>
 
-                <p className="text-lg md:text-xl text-white/80 mb-8">
+                <p className="text-lg mb-8">
                     Надёжный помощник для работы с BSL-сервером.
                 </p>
 
                 <a
                     href="/setting"
-                    className="bg-yellow-300 hover:bg-yellow-400 text-black font-semibold py-3 px-6 rounded-xl transition duration-300 shadow-md inline-block"
+                    className="w-full px-6 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg
+                        transition cursor-pointer"
                 >
                     ⚙️ Настройки
                 </a>
