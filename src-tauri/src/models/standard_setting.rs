@@ -1,4 +1,4 @@
-use phf::phf_map;
+use tauri::utils::assets::phf::phf_map;
 
 pub static DEFAULT_SETTINGS: phf::Map<&'static str, &'static str> = phf_map! {
     "hotkey" => "Ctrl+N",

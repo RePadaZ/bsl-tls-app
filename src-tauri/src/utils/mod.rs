@@ -1,3 +1,4 @@
+pub(crate) use crate::bsl_module::shortcut_state_pressed;
 use crate::models::error::AppError;
 use crate::models::standard_setting::DEFAULT_SETTINGS;
 use serde_json::json;
@@ -42,9 +43,9 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
                 .with_handler(move |_, shortcut, event| {
                     if shortcut == &shortcut_my {
                         match event.state() {
-                            ShortcutState::Pressed => {
+                            ShortcutState::Pressed => unsafe {
                                 shortcut_state_pressed();
-                            }
+                            },
                             _ => {}
                         }
                     }
@@ -58,11 +59,6 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
         .register(shortcut_my)
         .expect("Failed to set the global key");
     Ok(())
-}
-
-//TODO
-pub(crate) fn shortcut_state_pressed() {
-    println!("handler_global_shortcut_event");
 }
 
 /// Устанавливает стандартные настройки для приложения

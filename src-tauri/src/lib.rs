@@ -3,6 +3,7 @@ mod models {
     pub mod error;
     pub mod standard_setting;
 }
+mod bsl_module;
 mod client_module;
 mod error;
 mod preflight;
