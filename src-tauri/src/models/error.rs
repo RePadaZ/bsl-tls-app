@@ -28,6 +28,9 @@ pub enum AppError {
 
     #[error("<UNK> <UNK> <UNK> <UNK>")]
     SetNewHotKey(#[from] tauri_plugin_global_shortcut::Error),
+
+    #[error("<UNK> <UNK> <UNK> <UNK>")]
+    ErrorClipboard(clipboard_win::ErrorCode),
 }
 
 impl From<AppError> for InvokeError {

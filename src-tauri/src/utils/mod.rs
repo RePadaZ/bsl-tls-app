@@ -44,7 +44,7 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
                     if shortcut == &shortcut_my {
                         match event.state() {
                             ShortcutState::Pressed => unsafe {
-                                shortcut_state_pressed();
+                                let _ = shortcut_state_pressed();
                             },
                             _ => {}
                         }
