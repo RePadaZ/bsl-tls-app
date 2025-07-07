@@ -26,11 +26,14 @@ pub enum AppError {
     #[error("Ошибка хранилища настроек приложения: {0}")]
     SaveStore(String),
 
-    #[error("<UNK> <UNK> <UNK> <UNK>")]
+    #[error("Ошибка установки горячей клавиши")]
     SetNewHotKey(#[from] tauri_plugin_global_shortcut::Error),
 
-    #[error("<UNK> <UNK> <UNK> <UNK>")]
+    #[error("Ошибка чтения данных из буффера")]
     ErrorClipboard(clipboard_win::ErrorCode),
+
+    #[error("Ошибка чтения JSON")]
+    ErrorReadJSON(#[from] serde_json::Error),
 }
 
 impl From<AppError> for InvokeError {

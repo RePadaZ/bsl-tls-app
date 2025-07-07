@@ -1,13 +1,93 @@
 use crate::models::error::AppError;
+use crate::models::parse_json::Root;
 use clipboard_win::get_clipboard_string;
 use std::env;
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{BufReader, Write};
 use std::process::Command;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_A,
     VK_C, VK_CONTROL,
 };
+
+pub unsafe fn shortcut_state_pressed() -> Result<(), AppError> {
+    let hotkey = create_hotkey_windows(VK_A, VK_CONTROL);
+    // Отправка Ctrl+A
+    SendInput(&hotkey, size_of::<INPUT>() as i32);
+
+    // Небольшая задержка между нажатиями
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    let hotkey = create_hotkey_windows(VK_C, VK_CONTROL);
+    // Отправка Ctrl+C
+    SendInput(&hotkey, size_of::<INPUT>() as i32);
+
+    send_buffer_for_bsl()?;
+
+    read_generic_json()?;
+
+    Ok(())
+}
+
+fn send_buffer_for_bsl() -> Result<(), AppError> {
+    let mut path = env::current_dir()?; // получаем текущую директорию
+    path.push("bsl-language-server");
+    path.push("file.os");
+
+    if !path.exists() {
+        File::create(&path)?;
+    }
+
+    let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
+
+    match get_clipboard_string() {
+        Ok(text) => {
+            file.write_all(text.as_bytes())?;
+        }
+        Err(e) => {
+            eprintln!("Ошибка при получении текста из буфера: {}", e);
+            return Err(AppError::ErrorClipboard(e));
+        }
+    };
+
+    path.pop();
+
+    Command::new("powershell")
+        .args([
+            "-Command",
+            "Start-Process",
+            "bsl-language-server.exe",
+            "-ArgumentList '-a -s . -r generic'",
+            "-WorkingDirectory",
+            path.to_str().unwrap(),
+            "-Verb",
+            "RunAs",
+        ])
+        .spawn()
+        .expect("Не удалось запустить с правами администратора");
+
+    Ok(())
+}
+
+fn read_generic_json() -> Result<(), AppError> {
+    let mut path = env::current_dir()?;
+    path.push("bsl-language-server");
+    path.push("bsl-generic-json.json");
+
+    let file = OpenOptions::new().read(true).open(&path)?;
+
+    let reader = BufReader::new(file);
+    let data: Root = serde_json::from_reader(reader)?;
+
+    for issue in data.issues {
+        println!(
+            "сообщение: {}, cтрока: {}",
+            issue.primary_location.message, issue.primary_location.text_range.start_line
+        );
+    }
+
+    Ok(())
+}
 
 /// Функция для создания горячих клавиш.
 /// Принимает в себя виртуальную клавишу и соединяет её с клавишей Ctrl
@@ -68,61 +148,4 @@ fn create_hotkey_windows(vk_base: VIRTUAL_KEY, vk_extend: VIRTUAL_KEY) -> [INPUT
     ];
 
     hotkey
-}
-
-pub unsafe fn shortcut_state_pressed() -> Result<(), AppError> {
-    let hotkey = create_hotkey_windows(VK_A, VK_CONTROL);
-    // Отправка Ctrl+A
-    SendInput(&hotkey, size_of::<INPUT>() as i32);
-
-    // Небольшая задержка между нажатиями
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
-    let hotkey = create_hotkey_windows(VK_C, VK_CONTROL);
-    // Отправка Ctrl+C
-    SendInput(&hotkey, size_of::<INPUT>() as i32);
-
-    send_buffer_for_bsl()?;
-
-    Ok(())
-}
-
-fn send_buffer_for_bsl() -> Result<(), AppError> {
-    let mut path = env::current_dir()?; // получаем текущую директорию
-    path.push("bsl-language-server");
-    path.push("file.os");
-
-    if !path.exists() {
-        File::create(&path)?;
-    }
-
-    let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
-
-    match get_clipboard_string() {
-        Ok(text) => {
-            file.write_all(text.as_bytes())?;
-        }
-        Err(e) => {
-            eprintln!("Ошибка при получении текста из буфера: {}", e);
-            return Err(AppError::ErrorClipboard(e));
-        }
-    };
-
-    path.pop();
-
-    Command::new("powershell")
-        .args([
-            "-Command",
-            "Start-Process",
-            "bsl-language-server.exe",
-            "-ArgumentList '-a -s . -r generic'",
-            "-WorkingDirectory",
-            path.to_str().unwrap(),
-            "-Verb",
-            "RunAs",
-        ])
-        .spawn()
-        .expect("Не удалось запустить с правами администратора");
-
-    Ok(())
 }
