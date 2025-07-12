@@ -1,11 +1,11 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Root {
     pub issues: Vec<Issue>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Issue {
     engine_id: String,
@@ -18,7 +18,7 @@ pub struct Issue {
     secondary_locations: Vec<SecondaryLocation>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PrimaryLocation {
     pub message: String,
@@ -26,7 +26,7 @@ pub struct PrimaryLocation {
     pub text_range: TextRange,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TextRange {
     pub start_line: u32,
@@ -35,7 +35,7 @@ pub struct TextRange {
     end_column: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 struct SecondaryLocation {
     // Если есть поля — добавь сюда, пока оставим пустым
 }

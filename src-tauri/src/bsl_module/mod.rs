@@ -10,7 +10,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_C, VK_CONTROL,
 };
 
-pub unsafe fn shortcut_state_pressed() -> Result<(), AppError> {
+/// Функция вызывается при нажатии горчих клавиш и возвращает структуру
+pub unsafe fn shortcut_state_pressed() -> Result<Root, AppError> {
     let hotkey = create_hotkey_windows(VK_A, VK_CONTROL);
     // Отправка Ctrl+A
     SendInput(&hotkey, size_of::<INPUT>() as i32);
@@ -24,9 +25,9 @@ pub unsafe fn shortcut_state_pressed() -> Result<(), AppError> {
 
     send_buffer_for_bsl()?;
 
-    read_generic_json()?;
+    let data = read_generic_json()?;
 
-    Ok(())
+    Ok(data)
 }
 
 fn send_buffer_for_bsl() -> Result<(), AppError> {
@@ -39,6 +40,7 @@ fn send_buffer_for_bsl() -> Result<(), AppError> {
     }
 
     let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
+    file.write_all(b"")?;
 
     match get_clipboard_string() {
         Ok(text) => {
@@ -69,7 +71,7 @@ fn send_buffer_for_bsl() -> Result<(), AppError> {
     Ok(())
 }
 
-fn read_generic_json() -> Result<(), AppError> {
+fn read_generic_json() -> Result<Root, AppError> {
     let mut path = env::current_dir()?;
     path.push("bsl-language-server");
     path.push("bsl-generic-json.json");
@@ -77,16 +79,11 @@ fn read_generic_json() -> Result<(), AppError> {
     let file = OpenOptions::new().read(true).open(&path)?;
 
     let reader = BufReader::new(file);
-    let data: Root = serde_json::from_reader(reader)?;
 
-    for issue in data.issues {
-        println!(
-            "сообщение: {}, cтрока: {}",
-            issue.primary_location.message, issue.primary_location.text_range.start_line
-        );
+    match serde_json::from_reader(reader) {
+        Ok(data) => Ok(data),
+        Err(e) => Err(AppError::ErrorReadJSON(e)),
     }
-
-    Ok(())
 }
 
 /// Функция для создания горячих клавиш.
