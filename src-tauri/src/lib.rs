@@ -1,8 +1,10 @@
 mod models {
     pub mod custom_type;
     pub mod error;
+    pub mod parse_json;
     pub mod standard_setting;
 }
+mod bsl_module;
 mod client_module;
 mod error;
 mod preflight;

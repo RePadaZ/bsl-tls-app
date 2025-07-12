@@ -1,10 +1,11 @@
+pub(crate) use crate::bsl_module::shortcut_state_pressed;
 use crate::models::error::AppError;
 use crate::models::standard_setting::DEFAULT_SETTINGS;
 use serde_json::json;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use tauri::{App, Wry};
+use tauri::{App, Emitter, Wry};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_store::Store;
 
@@ -39,13 +40,22 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
     app.handle()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(move |_, shortcut, event| {
+                .with_handler(move |app, shortcut, event| {
                     if shortcut == &shortcut_my {
-                        match event.state() {
-                            ShortcutState::Pressed => {
-                                shortcut_state_pressed();
+                        if let ShortcutState::Pressed = event.state() {
+                            unsafe {
+                                match shortcut_state_pressed() {
+                                    Ok(root) => {
+                                        // Отправляем root на клиент
+                                        app.emit("issues-update", root)
+                                            .expect("TODO: panic message");
+                                        // open_result_window(app, root);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Ошибка при обработке: {:?}", e);
+                                    }
+                                }
                             }
-                            _ => {}
                         }
                     }
                 })
@@ -58,11 +68,6 @@ fn parse_and_register_shortcut(app: &mut App, config: &str) -> Result<(), AppErr
         .register(shortcut_my)
         .expect("Failed to set the global key");
     Ok(())
-}
-
-//TODO
-pub(crate) fn shortcut_state_pressed() {
-    println!("handler_global_shortcut_event");
 }
 
 /// Устанавливает стандартные настройки для приложения

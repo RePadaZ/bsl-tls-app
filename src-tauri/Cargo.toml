@@ -26,7 +26,9 @@ serde_json = "1.0.140"
 tauri-plugin-dialog = "2.2.2"
 anyhow = "1.0.98"
 serde = { version = "1.0.219", features = ["derive"] }
+windows = "0.61.1"
 [target.'cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))'.dependencies]
 tauri-plugin-global-shortcut = "2.2.1"
 global-hotkey = "0.7.0"
-phf = "0.11"
+phf = "0.12.1"
+clipboard-win = "5.4.0"

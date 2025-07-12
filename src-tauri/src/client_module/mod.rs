@@ -91,9 +91,9 @@ fn update_shortcut(app: AppHandle, config: &str) -> Result<(), AppError> {
         .on_shortcut(shortcut_my, move |_app, shortcut, event| {
             if shortcut == &shortcut_my {
                 match event.state() {
-                    ShortcutState::Pressed => {
-                        shortcut_state_pressed();
-                    }
+                    ShortcutState::Pressed => unsafe {
+                        let _ = shortcut_state_pressed();
+                    },
                     _ => {}
                 }
             }
