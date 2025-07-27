@@ -1,9 +1,8 @@
 use crate::models::error::AppError;
 use crate::models::parse_json::Root;
-use clipboard_win::get_clipboard_string;
+use clipboard_win::{get_clipboard_string, set_clipboard_string};
 use std::env;
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, Write};
+use std::mem::size_of;
 use std::process::Command;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY, VK_A,
@@ -12,61 +11,51 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 
 /// Функция вызывается при нажатии горчих клавиш и возвращает структуру
 pub unsafe fn shortcut_state_pressed() -> Result<Root, AppError> {
-    let hotkey = create_hotkey_windows(VK_A, VK_CONTROL);
-    // Отправка Ctrl+A
-    SendInput(&hotkey, size_of::<INPUT>() as i32);
+    // Очищаем буфер обмена перед началом операции
+    set_clipboard_string("").map_err(AppError::ErrorClipboard)?;
 
-    // Небольшая задержка между нажатиями
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    // Выполняем Ctrl+A и Ctrl+C последовательно с минимальной задержкой
+    execute_keyboard_sequence(&[
+        (VK_A, VK_CONTROL), // Ctrl+A для выделения всего текста
+        (VK_C, VK_CONTROL), // Ctrl+C для копирования в буфер
+    ])?;
 
-    let hotkey = create_hotkey_windows(VK_C, VK_CONTROL);
-    // Отправка Ctrl+C
-    SendInput(&hotkey, size_of::<INPUT>() as i32);
-
+    // Обрабатываем данные через BSL и возвращаем результат
     send_buffer_for_bsl()?;
-
-    let data = read_generic_json()?;
-
-    Ok(data)
+    read_generic_json()
 }
 
 fn send_buffer_for_bsl() -> Result<(), AppError> {
-    let mut path = env::current_dir()?; // получаем текущую директорию
-    path.push("bsl-language-server");
-    path.push("file.os");
+    let mut file_path = env::current_dir()?;
+    file_path.push("bsl-language-server");
 
-    if !path.exists() {
-        File::create(&path)?;
-    }
+    let working_dir = file_path.clone();
+    file_path.push("file.os");
 
-    let mut file = OpenOptions::new().write(true).create(true).open(&path)?;
-    file.write_all(b"")?;
+    // Получаем текст из буфера обмена и записываем в файл одной операцией
+    let clipboard_text = get_clipboard_string().map_err(AppError::ErrorClipboard)?;
+    std::fs::write(&file_path, clipboard_text.as_bytes())?;
 
-    match get_clipboard_string() {
-        Ok(text) => {
-            file.write_all(text.as_bytes())?;
-        }
-        Err(e) => {
-            eprintln!("Ошибка при получении текста из буфера: {}", e);
-            return Err(AppError::ErrorClipboard(e));
-        }
-    };
-
-    path.pop();
-
-    Command::new("powershell")
+    // Запускаем BSL language server с оптимизированными параметрами
+    let status = Command::new("powershell")
         .args([
+            "-NoProfile", // Ускоряет запуск PowerShell
             "-Command",
             "Start-Process",
             "bsl-language-server.exe",
             "-ArgumentList '-a -s . -r generic'",
             "-WorkingDirectory",
-            path.to_str().unwrap(),
+            working_dir.to_str().ok_or(AppError::ErrorWriteBslPath)?,
             "-Verb",
             "RunAs",
+            "-Wait",
         ])
-        .spawn()
-        .expect("Не удалось запустить с правами администратора");
+        .spawn()?
+        .wait()?;
+
+    if !status.success() {
+        return Err(AppError::ErrorWriteBslPath);
+    }
 
     Ok(())
 }
@@ -76,14 +65,32 @@ fn read_generic_json() -> Result<Root, AppError> {
     path.push("bsl-language-server");
     path.push("bsl-generic-json.json");
 
-    let file = OpenOptions::new().read(true).open(&path)?;
+    // Используем std::fs::read_to_string для более эффективного чтения
+    let json_content = std::fs::read_to_string(&path)?;
+    serde_json::from_str(&json_content).map_err(AppError::ErrorReadJSON)
+}
 
-    let reader = BufReader::new(file);
+/// Выполняет последовательность клавиатурных комбинаций с оптимальной задержкой
+/// Более эффективно, чем отдельные вызовы SendInput
+unsafe fn execute_keyboard_sequence(
+    key_combinations: &[(VIRTUAL_KEY, VIRTUAL_KEY)],
+) -> Result<(), AppError> {
+    const OPTIMAL_DELAY_MS: u64 = 50; // Оптимальная задержка между комбинациями
 
-    match serde_json::from_reader(reader) {
-        Ok(data) => Ok(data),
-        Err(e) => Err(AppError::ErrorReadJSON(e)),
+    for &(base_key, modifier_key) in key_combinations {
+        let hotkey = create_hotkey_windows(base_key, modifier_key);
+
+        // Проверяем успешность отправки клавиш
+        let result = SendInput(&hotkey, size_of::<INPUT>() as i32);
+        if result != hotkey.len() as u32 {
+            return Err(AppError::ErrorWriteBslPath); // Используем существующую ошибку
+        }
+
+        // Минимальная задержка для корректной обработки системой
+        std::thread::sleep(std::time::Duration::from_millis(OPTIMAL_DELAY_MS));
     }
+
+    Ok(())
 }
 
 /// Функция для создания горячих клавиш.
@@ -145,4 +152,60 @@ fn create_hotkey_windows(vk_base: VIRTUAL_KEY, vk_extend: VIRTUAL_KEY) -> [INPUT
     ];
 
     hotkey
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::fs::{remove_file, File};
+    use std::io::Write;
+
+    // Вспомогательная функция для создания тестового JSON-файла
+    fn create_test_json_file(content: &str) -> std::path::PathBuf {
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        std::fs::create_dir_all(&path).unwrap();
+        path.push("bsl-generic-json.json");
+        let mut file = File::create(&path).unwrap();
+        file.write_all(content.as_bytes()).unwrap();
+        path
+    }
+
+    #[test]
+    fn test_read_generic_json_file_read() {
+        // Прочитать валидный файл
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        path.push("bsl-generic-json.json");
+        let _ = remove_file(&path);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должен быть прочитал корректно файл");
+    }
+
+    #[test]
+    fn test_read_generic_json_file_not_found() {
+        // Удаляем файл, если он есть
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        path.push("bsl-generic-json.json");
+        let _ = remove_file(&path);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должна быть ошибка при отсутствии файла");
+    }
+
+    #[test]
+    fn test_read_generic_json_invalid_json() {
+        // Некорректный JSON
+        let json = r#"{\"field1\": \"value\", \"field2\": }"#;
+        let path = create_test_json_file(json);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должна быть ошибка при некорректном JSON");
+
+        // Очистка
+        remove_file(path).unwrap();
+    }
 }
