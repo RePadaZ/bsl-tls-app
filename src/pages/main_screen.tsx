@@ -1,21 +1,9 @@
 import {listen} from "@tauri-apps/api/event";
 import {useEffect, useState} from "react";
-
-interface Root {
-    issues: {
-        primaryLocation: {
-            message: string;
-            textRange: {
-                startLine: number;
-            };
-        };
-    }[];
-}
-
+import {Root} from "../models/mod.ts";
 
 export default function Main_screen() {
     const [issues, setIssues] = useState<Root | null>(null);
-
 
     useEffect(() => {
         // Подписываемся на событие
