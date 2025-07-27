@@ -8,6 +8,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_store::Store;
 use tauri_plugin_store::StoreExt;
 
 /// Получает настройки приложения для клиента и проверяет что все настройки совпадают.
@@ -27,23 +28,23 @@ pub fn get_data_setting(app: AppHandle) -> Result<HashMap<String, String>, AppEr
         return default_setting_map();
     }
 
-    // Создаем map в который будем помещать значения
+    let map = get_the_values_settings(&store)?;
+    Ok(map)
+}
+
+fn get_the_values_settings(store: &Store<tauri::Wry>) -> Result<HashMap<String, String>, AppError> {
     let mut map = HashMap::new();
 
-    // Далее получаем значения по одному и помещаем их в map
-    // Если какая-то настройка отсутствует или повреждена то тогда вставляем стандартные настройки
     for (key, default_value) in DEFAULT_SETTINGS.entries() {
-        // Получаем сам объект
         let value = store.get(*key).unwrap_or_default();
 
-        // Далее получаем из объекта значение и помещаем в map
-        if let Some(value_str) = value.get("value").and_then(|v| v.as_str()) {
-            if value_str.is_empty() {
-                map.insert((*key).to_string(), (*default_value).to_string());
-            } else {
-                map.insert((*key).to_string(), (*value_str).to_string());
-            }
-        }
+        let setting_value = value
+            .get("value")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .unwrap_or(default_value);
+
+        map.insert(key.to_string(), setting_value.to_string());
     }
 
     Ok(map)
