@@ -54,7 +54,8 @@ fn send_buffer_for_bsl() -> Result<(), AppError> {
 
     path.pop();
 
-    Command::new("powershell")
+    // Запускаем процесс и ждем его завершения
+    let status = Command::new("powershell")
         .args([
             "-Command",
             "Start-Process",
@@ -64,9 +65,15 @@ fn send_buffer_for_bsl() -> Result<(), AppError> {
             path.to_str().unwrap(),
             "-Verb",
             "RunAs",
+            "-Wait", // Добавляем флаг для ожидания завершения
         ])
-        .spawn()
-        .expect("Не удалось запустить с правами администратора");
+        .spawn()? // Используем ? вместо expect для корректной обработки ошибок
+        .wait()?; // Ждем завершения процесса
+
+    // Проверяем успешность выполнения
+    if !status.success() {
+        return Err(AppError::ErrorWriteBslPath);
+    };
 
     Ok(())
 }
@@ -145,4 +152,60 @@ fn create_hotkey_windows(vk_base: VIRTUAL_KEY, vk_extend: VIRTUAL_KEY) -> [INPUT
     ];
 
     hotkey
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use std::fs::{remove_file, File};
+    use std::io::Write;
+
+    // Вспомогательная функция для создания тестового JSON-файла
+    fn create_test_json_file(content: &str) -> std::path::PathBuf {
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        std::fs::create_dir_all(&path).unwrap();
+        path.push("bsl-generic-json.json");
+        let mut file = File::create(&path).unwrap();
+        file.write_all(content.as_bytes()).unwrap();
+        path
+    }
+
+    #[test]
+    fn test_read_generic_json_file_read() {
+        // Прочитать валидный файл
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        path.push("bsl-generic-json.json");
+        let _ = remove_file(&path);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должен быть прочитал корректно файл");
+    }
+
+    #[test]
+    fn test_read_generic_json_file_not_found() {
+        // Удаляем файл, если он есть
+        let mut path = env::current_dir().unwrap();
+        path.push("bsl-language-server");
+        path.push("bsl-generic-json.json");
+        let _ = remove_file(&path);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должна быть ошибка при отсутствии файла");
+    }
+
+    #[test]
+    fn test_read_generic_json_invalid_json() {
+        // Некорректный JSON
+        let json = r#"{\"field1\": \"value\", \"field2\": }"#;
+        let path = create_test_json_file(json);
+
+        let result = read_generic_json();
+        assert!(result.is_err(), "Должна быть ошибка при некорректном JSON");
+
+        // Очистка
+        remove_file(path).unwrap();
+    }
 }

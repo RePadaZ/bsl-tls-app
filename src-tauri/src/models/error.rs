@@ -34,6 +34,9 @@ pub enum AppError {
 
     #[error("Ошибка чтения JSON")]
     ErrorReadJSON(#[from] serde_json::Error),
+
+    #[error("Ошибка при обработке данных в BSL")]
+    ErrorWriteBslPath,
 }
 
 impl From<AppError> for InvokeError {
