@@ -1,4 +1,4 @@
-import {listen} from "@tauri-apps/api/event";
+import {listen, UnlistenFn} from "@tauri-apps/api/event";
 import {useEffect, useState} from "react";
 import {Root} from "../models/mod.ts";
 
@@ -6,19 +6,27 @@ export default function Main_screen() {
     const [issues, setIssues] = useState<Root | null>(null);
 
     useEffect(() => {
-        // Подписываемся на событие
-        let unlisten: () => void;
+        let unlisten: UnlistenFn | null = null;
 
-        listen<Root>("issues-update", (event) => {
-            console.log("Получены issues:", event.payload);
-            setIssues(event.payload); // сохраняем данные в состояние
-        }).then((f) => {
-            unlisten = f;
-        });
+        // Обёртка с async/await для listen
+        const setupListener = async () => {
+            try {
+                unlisten = await listen<Root>("issues-update", (event) => {
+                    console.log("Получены issues:", event.payload);
+                    setIssues(event.payload);
+                });
+            } catch (err) {
+                console.error("Ошибка при подписке на issues-update:", err);
+            }
+        };
 
-        // Отписка при размонтировании
+        setupListener();
+
+        // Отписка при размонтировании компонента
         return () => {
-            if (unlisten) unlisten();
+            if (unlisten) {
+                unlisten();
+            }
         };
     }, []);
 

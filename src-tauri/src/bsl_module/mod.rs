@@ -1,6 +1,6 @@
 use crate::models::error::AppError;
 use crate::models::parse_json::Root;
-use clipboard_win::get_clipboard_string;
+use clipboard_win::{get_clipboard_string, set_clipboard_string};
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Write};
@@ -13,11 +13,16 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 /// Функция вызывается при нажатии горчих клавиш и возвращает структуру
 pub unsafe fn shortcut_state_pressed() -> Result<Root, AppError> {
     let hotkey = create_hotkey_windows(VK_A, VK_CONTROL);
+
+    if let Err(e) = set_clipboard_string("") {
+        eprintln!("Ошибка при очистке буфера: {:?}", e);
+    }
+
     // Отправка Ctrl+A
     SendInput(&hotkey, size_of::<INPUT>() as i32);
 
     // Небольшая задержка между нажатиями
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(200));
 
     let hotkey = create_hotkey_windows(VK_C, VK_CONTROL);
     // Отправка Ctrl+C
